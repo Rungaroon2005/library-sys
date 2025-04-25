@@ -38,23 +38,41 @@ export default function BooksPage() {
 
     setIsLoading(true);
     try {
+      // Making sure we're using the correct endpoint and sending data in the expected format
       const response = await fetch("http://localhost:3000/books/search/books", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title: searchQuery,
-          author: searchQuery,
+          query: searchQuery,
+          // You may need to specify additional fields if your SearchBookDto expects them
+          // For example, if your DTO expects specific fields to search:
+          searchFields: ["title", "author", "category"]
         }),
       });
 
-      if (!response.ok) throw new Error("Search failed");
+      if (!response.ok) {
+        throw new Error("Search failed with status: " + response.status);
+      }
 
       const result = await response.json();
-      setBooks(result);
+      
+      // Check the structure of the result
+      if (Array.isArray(result)) {
+        setBooks(result);
+      } else if (result.data && Array.isArray(result.data)) {
+        // Handle case where result might be wrapped in a data property
+        setBooks(result.data);
+      } else {
+        console.error("Unexpected search result format:", result);
+        // Fall back to empty array
+        setBooks([]);
+      }
     } catch (error) {
       console.error("Search failed", error);
+      // Optionally show an error message to the user
+      alert("Failed to search books. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +97,11 @@ export default function BooksPage() {
       console.error("Delete failed", error);
     }
   };
+
+  // For debugging - log the current books whenever they change
+  useEffect(() => {
+    console.log("Current books:", books);
+  }, [books]);
 
   return (
     <div>
